@@ -103,12 +103,12 @@ the_colormap = the_colormap(end:-1:1,:); % inverse colormap
 the_colormap(1,:) = [1 1 1]; % white
 
 back = double(imread('background.tif'))/255;
-
+clrmap_len=(size(the_colormap, 1)-1);
 % standard
 temp2 = sCi_standard(:);
 temp2 = (temp2-mini)/(maxi-mini); % stretches between mini and maxi
 temp2 = max(temp2, 0);
-temp2 = ceil(temp2 * 255) + 1;
+temp2 = ceil(temp2 * clrmap_len) + 1;
 temp = the_colormap(temp2,:);
 sCi_col = imresize(reshape(temp, [size(sCi) 3]), size(back,1)/size(sCi,1));
 im = sCi_col.*back + (1-back)/2;
@@ -119,7 +119,7 @@ title('standard')
 temp2 = sCi_RT(:);
 temp2 = (temp2-mini)/(maxi-mini); % stretches between mini and maxi
 temp2 = max(temp2, 0);
-temp2 = ceil(temp2 * 255) + 1;
+temp2 = ceil(temp2 * clrmap_len) + 1;
 temp = the_colormap(temp2,:);
 sCi_col = imresize(reshape(temp, [size(sCi) 3]), size(back,1)/size(sCi,1));
 im = sCi_col.*back + (1-back)/2;
@@ -130,7 +130,7 @@ title('RT')
 temp2 = sCi_RT_bins(:);
 temp2 = (temp2-mini)/(maxi-mini); % stretches between mini and maxi
 temp2 = max(temp2, 0);
-temp2 = ceil(temp2 * 255) + 1;
+temp2 = ceil(temp2 * clrmap_len) + 1;
 temp = the_colormap(temp2,:);
 sCi_col = imresize(reshape(temp, [size(sCi) 3]), size(back,1)/size(sCi,1));
 im = sCi_col.*back + (1-back)/2;
@@ -141,7 +141,7 @@ title('RT bins')
 temp2 = sCi_reclass(:);
 temp2 = (temp2-mini)/(maxi-mini); % stretches between mini and maxi
 temp2 = max(temp2, 0);
-temp2 = ceil(temp2 * 255) + 1;
+temp2 = ceil(temp2 * clrmap_len) + 1;
 temp = the_colormap(temp2,:);
 sCi_col = imresize(reshape(temp, [size(sCi) 3]), size(back,1)/size(sCi,1));
 im = sCi_col.*back + (1-back)/2;
