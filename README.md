@@ -6,4 +6,4 @@ The function in this repository helps improve the signal-to-noise ratio (SNR) in
 
 Please cite our paper if you use this function:
 
-Gosselin, F., Daigneault, V., Larouche, J.-M, & Caplette, L. (submitted). Reclassifying guesses to increase signal-to-noise ratio in psychological experiments. <psyarxiv.com/3s9du>
+Gosselin, F., Daigneault, V., Larouche, J.-M, & Caplette, L. (submitted). Reclassifying guesses to increase signal-to-noise ratio in psychological experiments. <https://psyarxiv.com/3s9du>
