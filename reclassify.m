@@ -1,4 +1,4 @@
-function [accuracy_reclass, stats] = reclassify(accuracy, reclass_evidence)
+function [accuracy_reclass, stats_reclass] = reclassify(accuracy, reclass_evidence)
 
 % reclassify. This function reclassifies correct responses that are likely to be correct by chance as incorrect responses in 
 % discrimination experiments using some evidence. We've recomputed 140 classification images with accuracies reclassified by 
@@ -6,7 +6,7 @@ function [accuracy_reclass, stats] = reclassify(accuracy, reclass_evidence)
 %
 % Usage: 
 %
-%   [accuracy_reclass, stats] = reclassify(accuracy, reclass_evidence);
+%   [accuracy_reclass, stats_reclass] = reclassify(accuracy, reclass_evidence);
 %
 % The function takes 2 inputs: _accuracy_, a vector equal to 0 when the response to a trial was incorrect and to 1 when it 
 % was correct; and _reclass_evidence_, a vector of the same length as _accuracy_ equal to a reclassification evidence for each 
@@ -14,12 +14,14 @@ function [accuracy_reclass, stats] = reclassify(accuracy, reclass_evidence)
 % greater or smaller than the average of the evidence for correct responses but it must be different. The The function has 2 
 % outputs: _accuracy_reclass_, a vector of the same length as _accuracy_ equal to 0 when the response to a trial was incorrect 
 % or when a correct response to a trial was reclassified as incorrect, and to 1 when the response to trial was correct and 
-% wasn't reclassified as incorrect; and _stats_ a structure with 4 fields: _reclass_evidence_criterion_, a reclassification 
+% wasn't reclassified as incorrect; and _stats_reclass_ a structure with 5 fields: _reclass_evidence_criterion_, a reclassification 
 % evidence such that when _reclass_evidence_polarity_ * _reclass_evidence_ > _reclass_evidence_polarity_ * _reclass_evidence_criterion_ 
 % a correct response was reclassified as incorrect; _reclass_evidence_polarity_, either 1 or -1 and indicating how to interpret 
 % the criterion; _reclass_index_, an index of the correct responses reclassified as incorrect; _reclass_efficiency_, the estimated 
-% proportion of true correct and incorrect responses minus false correct and incorrect responses following reclassification; and _reclass_gain_, the ratio between _reclass_efficiency_ 
-% and the efficiency prior to reclassification. Note that sqrt(_reclass_gain_) provides an approximation of the expected SNR gain.
+% proportion of true correct and incorrect responses minus false correct and incorrect responses following reclassification; 
+% _reclass_gain_, the ratio between _reclass_efficiency_ and the efficiency prior to reclassification (note that sqrt(_reclass_gain_) 
+% provides an approximation of the expected SNR gain, assuming that all trials carry the same information); and _t_, which contains 
+% statistics about a two-sample t-test on the mean of the reclassification evidence for correct and for incorrect responses (if _t.tstat_).
 %
 % Gosselin, F., Daignault, V., Larouche, J.-M. & Caplette, L. (submitted). Reclassifying guesses to increase signal-to-noise ratio 
 % in psychophysical experiments.
@@ -29,6 +31,10 @@ function [accuracy_reclass, stats] = reclassify(accuracy, reclass_evidence)
 %
 % Minor modifications by Laurent Caplette, 17/08/2020
 % laurent.caplette@yale.edu
+%
+% Minor modifications by Frederic Gosselin 01/09/2022
+% frederic.gosselin@umontreal.ca
+
 
     
 % check that accuracy is composed of only zeros and ones
@@ -48,14 +54,18 @@ end
 
 % reverses the reclass_evidence if necessary
 polarity = 1;                                                                                   % default reclass_evidence polarity
-if (mean(reclass_evidence(find(accuracy==0)))-mean(reclass_evidence(find(accuracy==1))))<0,     % the reclass_evidence is greater for incorrect than correct trials
+reclass_evidence_incorrect = reclass_evidence(find(accuracy==0));
+reclass_evidence_correct = reclass_evidence(find(accuracy==1));
+[temp, temp, temp, stats_reclass.reclass_t] = ttest2(reclass_evidence_incorrect, reclass_evidence_correct);     % t-test on the mean difference between correct and incorrect reclass_evidence
+if stats_reclass.reclass_t.tstat<0,     % the reclass_evidence is greater for incorrect than correct trials
     polarity = -1;                                                                              % change reclass_evidence polarity
 end
 reclass_evidence = polarity * reclass_evidence;                                                 % the reclass_evidence multiplied by its polarity
 
 % calculates histograms
 nb_std = 2;
-outliers = reclass_evidence > mean(reclass_evidence)+nb_std*std(reclass_evidence);              % temporary outliers to help frame the histogram
+outliers = (reclass_evidence > mean(reclass_evidence)+nb_std*std(reclass_evidence)) ...
+    | (reclass_evidence < mean(reclass_evidence)-nb_std*std(reclass_evidence));                 % temporary outliers to help frame the histogram
 [n_reclass_evidence, bins] = histcounts(reclass_evidence(~outliers), 'BinMethod', 'fd');        % uses the Freedman-Diaconis rule for bin width
 bin_width = bins(2)-bins(1);                                                                    % bin_width
 bins = bins(1):bin_width:ceil(max(reclass_evidence)/bin_width)*bin_width;                       % complete reclass_evidence range, including outliers
@@ -80,6 +90,7 @@ s_n_incorrect = interp1(x, n_incorrect, s_x, 'spline');                         
 s_n_true_correct = s_n_correct-s_n_incorrect;                                                   % interpolated true correct reclass_evidence frequency distribution
 %s_n_true_correct = max(s_n_true_correct, 0);                                                    % set minimum to 0
 
+
 % finds the best reclass_evidence criterion
 N = sum(s_n_correct)+sum(s_n_incorrect);                                                        % number of points in all interpolated frequency distributions; general case
 I_o = sum(s_n_incorrect);                                                                       % number of points in interpolated n_incorrect frequency distribution
@@ -95,11 +106,12 @@ reclass_index = find((accuracy == 1) & (reclass_evidence > reclass_evidence_crit
 accuracy_reclass(reclass_index) = 0;                                                            % reclassification per se
 
 % some statistics
-stats.reclass_evidence_polarity = polarity;                                                     % the reclassified correct responses are smaller than the criterion
-stats.reclass_evidence_criterion = polarity * reclass_evidence_criterion;   
-stats.reclass_index = reclass_index;
-stats.reclass_efficiency = s_efficiency(s_ind);
-stats.reclass_gain = s_efficiency(s_ind) / (1-2*(1-mean(accuracy))); 
+stats_reclass.reclass_evidence_polarity = polarity;                                                     % the reclassified correct responses are smaller than the criterion
+stats_reclass.reclass_evidence_criterion = polarity * reclass_evidence_criterion;   
+stats_reclass.reclass_index = reclass_index;
+stats_reclass.reclass_efficiency = s_efficiency(s_ind);
+stats_reclass.reclass_gain = s_efficiency(s_ind) / (1-2*(1-mean(accuracy)));                            % theoretical classification efficiency
+%stats_reclass.reclass_gain = s_efficiency(s_ind) / s_efficiency(end);                                  % classification efficiency empirically estimated
 
 %% for making figures only
 % figure, plot(s_x, s_efficiency,'-', reclass_evidence_criterion, max(s_efficiency), '*')
