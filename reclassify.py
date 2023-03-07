@@ -42,8 +42,8 @@ def reclassify(accuracy, reclass_evidence):
     polarity = 1  # default evidence polarity
     reclass_evidence_incorrect = reclass_evidence[accuracy == 0]
     reclass_evidence_correct = reclass_evidence[accuracy == 1]
-    t = stats_reclass.t_test_ind(reclass_evidence_correct, reclass_evidence_incorrect)
-    if t.statistics < 0:  # the evidence is greater for incorrect than correct trials
+    t = stats.ttest_ind(reclass_evidence_incorrect, reclass_evidence_correct)
+    if t.statistic < 0:  # the evidence is greater for correct than incorrect trials
         polarity = -1  # change evidence polarity
     reclass_evidence *= polarity  # the evidence multiplied by its polarity
 
@@ -91,8 +91,9 @@ def reclassify(accuracy, reclass_evidence):
         'reclass_criterion': polarity * reclass_criterion,
         'reclass_index': reclass_index,
         'reclass_efficiency': s_efficiency[s_ind],
-        #'reclass_gain': s_efficiency[s_ind] / s_efficiency[-1]
-        'reclass_gain': s_efficiency[s_ind] / (1-2*(1-np.mean(accuracy)))
+        'reclass_gain': s_efficiency[s_ind] / s_efficiency[-1]
+        #'reclass_gain': s_efficiency[s_ind] / (1-2*(1-np.mean(accuracy)))
     }
 
     return accuracy_reclass, stats_reclass
+
